@@ -34,12 +34,15 @@ typedef struct _SERVER_DATA {
   bool paired;
   bool supports4K;
   bool unsupported;
+  bool isNvidiaSoftware;
   int currentGame;
   int serverMajorVersion;
   char* gsVersion;
   char* hostname;
   PDISPLAY_MODE modes;
   SERVER_INFORMATION serverInfo;
+  unsigned short httpPort;
+  unsigned short httpsPort;
 } SERVER_DATA, *PSERVER_DATA;
 
 int mkdirtree(const char* directory);

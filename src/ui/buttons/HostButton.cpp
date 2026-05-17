@@ -42,7 +42,14 @@ void HostButton::draw(NVGcontext *ctx) {
     nvgReset(ctx);
     
     nvgTranslate(ctx, absolute_position().x(), absolute_position().y());
-    nvgFillColor(ctx, Color(255, 255, 255, 255));
+
+    NVGcolor fillColor;
+    fillColor.r = 255 / 255.0;
+    fillColor.g = 255 / 255.0;
+    fillColor.b = 255 / 255.0;
+    fillColor.a = 255 / 255.0;
+    nvgFillColor(ctx, fillColor);
+
     nvgFontSize(ctx, 130);
     nvgFontFace(ctx, "icons");
     nvgTextAlign(ctx, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);

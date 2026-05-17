@@ -171,13 +171,13 @@ void MoonlightSession::start(std::function<void(bool)> callback) {
     
     switch (Settings::settings()->video_codec()) {
         case H264:
-            m_config.supportsHevc = 0;
+            m_config.supportedVideoFormats = VIDEO_FORMAT_H264;
             break;
         case H265:
-            m_config.supportsHevc = 1;
-            m_config.hevcBitratePercentageMultiplier = 75;
+            m_config.supportedVideoFormats = VIDEO_FORMAT_H264 | VIDEO_FORMAT_H265;
             break;
         default:
+            m_config.supportedVideoFormats = VIDEO_FORMAT_H264;
             break;
     }
     

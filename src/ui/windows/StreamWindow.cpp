@@ -54,7 +54,13 @@ void StreamWindow::draw(NVGcontext *ctx) {
     nvgRestore(ctx);
     
     if (m_session->connection_status_is_poor()) {
-        nvgFillColor(ctx, Color(255, 255, 255, 200));
+        NVGcolor warnColor;
+        warnColor.r = 255 / 255.0;
+        warnColor.g = 255 / 255.0;
+        warnColor.b = 255 / 255.0;
+        warnColor.a = 200 / 255.0;
+        nvgFillColor(ctx, warnColor);
+        
         nvgFontSize(ctx, 20);
         nvgFontFace(ctx, "icons");
         nvgTextAlign(ctx, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
@@ -91,7 +97,13 @@ void StreamWindow::draw(NVGcontext *ctx) {
                           (float)stats->video_decode_stats.total_decode_time / stats->video_decode_stats.decoded_frames,
                           (float)stats->video_render_stats.total_render_time / stats->video_render_stats.rendered_frames);
         
-        nvgFillColor(ctx, Color(0, 255, 0, 255));
+        NVGcolor statsColor;
+        statsColor.r = 0 / 255.0;
+        statsColor.g = 255 / 255.0;
+        statsColor.b = 0 / 255.0;
+        statsColor.a = 255 / 255.0;
+        nvgFillColor(ctx, statsColor);
+
         nvgFontFace(ctx, "sans-bold");
         nvgFontSize(ctx, 20);
         nvgTextAlign(ctx, NVG_ALIGN_LEFT | NVG_ALIGN_BOTTOM);

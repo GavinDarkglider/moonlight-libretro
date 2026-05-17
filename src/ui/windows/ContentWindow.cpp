@@ -32,20 +32,44 @@ void ContentWindow::draw(NVGcontext *ctx) {
     nvgSave(ctx);
     
     // Draw bg
-    nvgFillColor(ctx, Color(48, 48, 48, 255));
+    NVGcolor bgColor;
+    bgColor.r = 48 / 255.0;
+    bgColor.g = 48 / 255.0;
+    bgColor.b = 48 / 255.0;
+    bgColor.a = 255 / 255.0;
+    nvgFillColor(ctx, bgColor);
+
     nvgBeginPath(ctx);
     nvgRect(ctx, 0, 0, width(), height());
     nvgFill(ctx);
     
     // Draw header
-    nvgFillColor(ctx, Color(62, 78, 184, 255));
+    NVGcolor headerColor;
+    headerColor.r = 62 / 255.0;
+    headerColor.g = 78 / 255.0;
+    headerColor.b = 184 / 255.0;
+    headerColor.a = 255 / 255.0;
+    nvgFillColor(ctx, headerColor);
+
     nvgBeginPath(ctx);
     nvgRect(ctx, 0, 0, width(), 80);
     nvgFill(ctx);
     
     // Draw separator
+    NVGcolor greyColor;
+    headerColor.r = 0 / 255.0;
+    headerColor.g = 0 / 255.0;
+    headerColor.b = 0 / 255.0;
+    headerColor.a = 100 / 255.0;
+
+    NVGcolor blackColor;
+    blackColor.r = 0 / 255.0;
+    blackColor.g = 0 / 255.0;
+    blackColor.b = 0 / 255.0;
+    blackColor.a = 0 / 255.0;
+
     nvgBeginPath(ctx);
-    NVGpaint gradient = nvgLinearGradient(ctx, 0, 80, 0, 84, Color(0, 0, 0, 100), Color(0, 0, 0, 0));
+    NVGpaint gradient = nvgLinearGradient(ctx, 0, 80, 0, 84, greyColor, blackColor);
     nvgFillPaint(ctx, gradient);
     nvgRect(ctx, 0, 80, width(), 4);
     nvgFill(ctx);

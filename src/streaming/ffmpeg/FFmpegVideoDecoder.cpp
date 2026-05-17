@@ -30,7 +30,11 @@ int FFmpegVideoDecoder::setup(int video_format, int width, int height, int redra
     avcodec_register_all();
 #endif
     
-    av_init_packet(&m_packet);
+    m_packet = av_packet_alloc();
+    if (m_packet == NULL) {
+        LOG("Couldn't allocate packet\n");
+        return -1;
+    }
     
     int perf_lvl = LOW_LATENCY_DECODE;
     
@@ -112,8 +116,7 @@ int FFmpegVideoDecoder::setup(int video_format, int width, int height, int redra
 
 void FFmpegVideoDecoder::cleanup() {
     if (m_decoder_context) {
-        avcodec_close(m_decoder_context);
-        av_free(m_decoder_context);
+        avcodec_free_context(&m_decoder_context);
         m_decoder_context = NULL;
     }
     
@@ -130,6 +133,10 @@ void FFmpegVideoDecoder::cleanup() {
     if (m_ffmpeg_buffer) {
         free(m_ffmpeg_buffer);
         m_ffmpeg_buffer = nullptr;
+    }
+    
+    if (m_packet) {
+        av_packet_free(&m_packet);
     }
 }
 
@@ -190,10 +197,10 @@ int FFmpegVideoDecoder::capabilities() const {
 }
 
 int FFmpegVideoDecoder::decode(char* indata, int inlen) {
-    m_packet.data = (uint8_t *)indata;
-    m_packet.size = inlen;
+    m_packet->data = (uint8_t *)indata;
+    m_packet->size = inlen;
     
-    int err = avcodec_send_packet(m_decoder_context, &m_packet);
+    int err = avcodec_send_packet(m_decoder_context, m_packet);
     if (err < 0) {
         char error[512];
         av_strerror(err, error, sizeof(error));

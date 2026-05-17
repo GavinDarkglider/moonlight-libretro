@@ -55,16 +55,14 @@ else ifneq (,$(findstring osx,$(platform)))
 # Lakka Switch
 else ifeq ($(platform), lakka-switch)
    TOOLCHAIN := /home/rock88/Documents/Lakka-LibreELEC/build.Lakka-L4T.aarch64-2.2-devel/toolchain
-   CC = $(TOOLCHAIN)/bin/aarch64-libreelec-linux-gnueabi-gcc
-   CXX = $(TOOLCHAIN)/bin/aarch64-libreelec-linux-gnueabi-c++
+   CC = $(TOOLCHAIN)/bin/aarch64-libreelec-linux-gnu-gcc
+   CXX = $(TOOLCHAIN)/bin/aarch64-libreelec-linux-gnu-c++
    TARGET := $(TARGET_NAME)_libretro.so
    DEFINES += -mcpu=cortex-a57+crypto+crc+fp+simd -mabi=lp64 -Wno-psabi -mtune=cortex-a57 \
 	 -march=armv8-a+crypto+crc+fp+simd -fomit-frame-pointer -Wall -pipe -fPIC -pthread \
 	 -D__LAKKA_SWITCH__
-   INCLUDES += -Ithird_party/opus/include -Ithird_party/ffmpeg/include \
-	 -I$(TOOLCHAIN)/aarch64-libreelec-linux-gnueabi/sysroot/usr/include -I$(TOOLCHAIN)/include
-   LIBS += -Lthird_party/opus/lib -Lthird_party/ffmpeg/lib \
-	 -lpthread -lGL -luuid -lvdpau -lX11
+   INCLUDES += -I$(TOOLCHAIN)/aarch64-libreelec-linux-gnu/sysroot/usr/include -I$(TOOLCHAIN)/include
+   LIBS += -lpthread -lGL -luuid -lvdpau -lX11
    SHARED := -shared -Wl,--version-script=link.T -Wl,--no-undefined
 else
    CC = gcc
@@ -94,7 +92,7 @@ LIBGAMESTREAM_SOURCES = \
 	libgamestream/xml.c
 
 MOONLIGHT_LIBRETRO_C_SOURCES = \
-	src/glsym/rglgen.c \
+	third_party/libretro-common/glsym/rglgen.c \
 	src/nanogui_resources/nanogui_resources.c \
 	src/moonlight_libretro.c
 
@@ -186,11 +184,12 @@ NANOGUI_CXX_SOURCES = \
 	third_party/nanogui/src/popupbutton.cpp
 
 INCLUDES += \
-	-Isrc -Isrc/decoders -Isrc/glsym \
+	-Isrc -Isrc/decoders \
 	-Isrc/nanogui_resources \
 	-Isrc/ui -Isrc/ui/buttons -Isrc/ui/windows \
 	-Isrc/streaming -Isrc/streaming/audio -Isrc/streaming/video -Isrc/streaming/ffmpeg \
 	-Ilibgamestream \
+	-Ithird_party/libretro-common/include \
 	-Ithird_party/moonlight-common-c/reedsolomon \
 	-Ithird_party/moonlight-common-c/src \
 	-Ithird_party/moonlight-common-c/enet/include \
@@ -211,7 +210,7 @@ CXXFLAGS += -std=gnu++17 -fno-permissive $(DEFINES)
 LIBS += -lcrypto -lssl -lcurl -lz -lexpat -lopus \
 	-lavcodec -lavformat -lavutil -lavdevice -lstdc++ -lswresample
 
-OBJECTS += src/glsym/glsym_gl.o
+OBJECTS += third_party/libretro-common/glsym/glsym_gl.o
 LIBS += $(GL_LIB)
 
 all: $(TARGET)

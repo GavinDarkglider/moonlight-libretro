@@ -74,7 +74,14 @@ void AppButton::draw(NVGcontext *ctx) {
     
     if (m_label->visible()) {
         nvgSave(ctx);
-        nvgFillColor(ctx, Color(0, 0, 0, 100));
+
+        NVGcolor fillColor;
+        fillColor.r = 0 / 255.0;
+        fillColor.g = 0 / 255.0;
+        fillColor.b = 0 / 255.0;
+        fillColor.a = 100 / 255.0;
+        nvgFillColor(ctx, fillColor);
+
         nvgBeginPath(ctx);
         nvgRect(ctx, m_pos.x(), m_pos.y(), m_label->width(), m_label->height());
         nvgFill(ctx);

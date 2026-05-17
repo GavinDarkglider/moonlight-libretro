@@ -66,7 +66,13 @@ void MainWindow::draw(NVGcontext *ctx) {
     
     nvgSave(ctx);
     
-    nvgFillColor(ctx, Color(255, 255, 255, 200));
+    NVGcolor bgColor;
+    bgColor.r = 255 / 255.0;
+    bgColor.g = 255 / 255.0;
+    bgColor.b = 255 / 255.0;
+    bgColor.a = 200 / 255.0;
+    nvgFillColor(ctx, bgColor);
+
     nvgFontSize(ctx, 20);
     nvgFontFace(ctx, "sans");
     nvgText(ctx, width() - 40, height() - 8, MOONLIGHT_LIBRETRO_VERSION, NULL);

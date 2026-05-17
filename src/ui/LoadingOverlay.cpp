@@ -17,7 +17,13 @@ void LoadingOverlay::draw(NVGcontext *ctx) {
     nvgSave(ctx);
     
     // Draw bg
-    nvgFillColor(ctx, Color(0, 0, 0, 100));
+    NVGcolor bgColor;
+    bgColor.r = 0 / 255.0;
+    bgColor.g = 0 / 255.0;
+    bgColor.b = 0 / 255.0;
+    bgColor.a = 100 / 255.0;
+    nvgFillColor(ctx, bgColor);
+
     nvgBeginPath(ctx);
     nvgRect(ctx, 0, 0, width(), height());
     nvgFill(ctx);
@@ -29,7 +35,13 @@ void LoadingOverlay::draw(NVGcontext *ctx) {
     nvgTranslate(ctx, width() / 2, height() / 2);
     nvgRotate(ctx, r);
     
-    nvgFillColor(ctx, Color(255, 255, 255, 255));
+    NVGcolor spinnerColor;
+    spinnerColor.r = 255 / 255.0;
+    spinnerColor.g = 255 / 255.0;
+    spinnerColor.b = 255 / 255.0;
+    spinnerColor.a = 255 / 255.0;
+    nvgFillColor(ctx, spinnerColor);
+
     nvgFontSize(ctx, 40);
     nvgFontFace(ctx, "icons");
     nvgTextAlign(ctx, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
