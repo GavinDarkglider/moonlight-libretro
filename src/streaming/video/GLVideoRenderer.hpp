@@ -1,5 +1,5 @@
 #include "IVideoRenderer.hpp"
-#include "glsym.h"
+#include "glsym/glsym.h"
 #pragma once
 
 class GLVideoRenderer: public IVideoRenderer {
