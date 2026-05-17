@@ -19,6 +19,7 @@
 #include <stdlib.h>
 
 #include <openssl/crypto.h>
+#include <openssl/opensslv.h>
 #include <openssl/pem.h>
 #include <openssl/conf.h>
 #include <openssl/pkcs12.h>
@@ -36,13 +37,13 @@ int mkcert(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int years);
 int add_ext(X509 *cert, int nid, char *value);
 
 CERT_KEY_PAIR mkcert_generate() {
-    BIO *bio_err;
     X509 *x509 = NULL;
     EVP_PKEY *pkey = NULL;
     PKCS12 *p12 = NULL;
 
-    CRYPTO_mem_ctrl(CRYPTO_MEM_CHECK_ON);
-    bio_err = BIO_new_fp(stderr, BIO_NOCLOSE);
+    /* CRYPTO_mem_ctrl is a no-op in OpenSSL 1.1 and removed in 3.0, drop it.
+     * BIO_new_fp(stderr) was only used to feed errors during the debug-mem
+     * tracking which we no longer enable, drop it too. */
 
     OpenSSL_add_all_algorithms();
 
@@ -50,12 +51,12 @@ CERT_KEY_PAIR mkcert_generate() {
 
     p12 = PKCS12_create("limelight", "GameStream", pkey, x509, NULL, 0, 0, 0, 0, 0);
 
-#ifndef OPENSSL_NO_ENGINE
+#if !defined(OPENSSL_NO_ENGINE) && OPENSSL_VERSION_NUMBER < 0x30000000L
     ENGINE_cleanup();
 #endif
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
     CRYPTO_cleanup_all_ex_data();
-
-    BIO_free(bio_err);
+#endif
 
     return (CERT_KEY_PAIR) {x509, pkey, p12};
 }
@@ -84,7 +85,9 @@ void mkcert_save(const char* certFile, const char* p12File, const char* keyPairF
 int mkcert(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int years) {
     X509 *x;
     EVP_PKEY *pk;
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
     RSA *rsa;
+#endif
     X509_NAME *name = NULL;
 
     if (*pkeyp == NULL) {
@@ -104,6 +107,17 @@ int mkcert(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int years) {
         x = *x509p;
     }
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    /* OpenSSL 3.x: the RSA_new + RSA_generate_key_ex + EVP_PKEY_assign_RSA
+     * chain is deprecated. EVP_RSA_gen() returns a fully populated EVP_PKEY*
+     * in a single call. */
+    EVP_PKEY_free(pk);
+    pk = EVP_RSA_gen(bits);
+    if (pk == NULL) {
+        abort();
+        goto err;
+    }
+#else
     if ((rsa = RSA_new()) == NULL)
         goto err;
 
@@ -123,6 +137,7 @@ int mkcert(X509 **x509p, EVP_PKEY **pkeyp, int bits, int serial, int years) {
         abort();
         goto err;
     }
+#endif
 
     X509_set_version(x, 2);
     ASN1_INTEGER_set(X509_get_serialNumber(x), serial);
