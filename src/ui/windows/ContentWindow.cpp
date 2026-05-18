@@ -17,7 +17,12 @@ ContentWindow::ContentWindow(Widget *parent, const std::string& title): Widget(p
     m_left_title_button_container->set_layout(new BoxLayout(Orientation::Horizontal));
     
     m_title_label = title_container->add<Label>(title);
-    m_title_label->set_fixed_width(parent->width() - 140);
+    /* Reserve 80px on each side for an optional title button (60px) plus
+     * BoxLayout spacing, plus the container's own 40px outer margins.
+     * The original 140 only accounted for a right button; once MainWindow
+     * grew a left "discover" button, the right "settings" button got
+     * pushed off-screen. */
+    m_title_label->set_fixed_width(parent->width() - 220);
     m_title_label->set_font_size(40);
     
     m_right_title_button_container = title_container->add<Widget>();
