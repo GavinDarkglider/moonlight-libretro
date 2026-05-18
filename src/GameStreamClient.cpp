@@ -3,40 +3,75 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <condition_variable>
 #include <algorithm>
 #include <vector>
 #include <iostream>
 #include <fstream>
 #include <future>
+#include <atomic>
 #include <nanogui/nanogui.h>
 
 #include <unistd.h>
 
 static std::mutex m_async_mutex;
+static std::condition_variable m_async_cv;
 static std::vector<std::function<void()>> m_tasks;
+static std::atomic<bool> m_async_running{false};
+static std::thread m_async_thread;
 
 static void task_loop() {
-    auto thread = std::thread([](){
-        while (1) {
-            std::vector<std::function<void()>> m_tasks_copy; {
-                std::lock_guard<std::mutex> guard(m_async_mutex);
-                m_tasks_copy = m_tasks;
-                m_tasks.clear();
+    if (m_async_running.exchange(true)) {
+        return; /* already running */
+    }
+
+    m_async_thread = std::thread([](){
+        for (;;) {
+            std::vector<std::function<void()>> m_tasks_copy;
+            {
+                std::unique_lock<std::mutex> lock(m_async_mutex);
+                m_async_cv.wait(lock, [] {
+                    return !m_async_running.load() || !m_tasks.empty();
+                });
+                if (!m_async_running.load() && m_tasks.empty()) {
+                    break;
+                }
+                m_tasks_copy.swap(m_tasks);
             }
-            
-            for (auto task: m_tasks_copy) {
+
+            for (auto &task: m_tasks_copy) {
                 task();
             }
-            
-            usleep(500'000);
         }
     });
-    thread.detach();
 }
 
 void perform_async(std::function<void()> task) {
+    {
+        std::lock_guard<std::mutex> guard(m_async_mutex);
+        if (!m_async_running.load()) {
+            /* Drop tasks queued during shutdown; the worker has already
+             * been joined and will not pick them up. */
+            return;
+        }
+        m_tasks.push_back(std::move(task));
+    }
+    m_async_cv.notify_one();
+}
+
+void perform_async_shutdown() {
+    if (!m_async_running.exchange(false)) {
+        return; /* never started, or already shut down */
+    }
+    m_async_cv.notify_all();
+    if (m_async_thread.joinable()) {
+        m_async_thread.join();
+    }
+    /* Anything still queued at this point will never run; drop it so the
+     * lambdas (and their captures) are destroyed deterministically before
+     * the surrounding C++ objects go away. */
     std::lock_guard<std::mutex> guard(m_async_mutex);
-    m_tasks.push_back(task);
+    m_tasks.clear();
 }
 
 GameStreamClient::GameStreamClient() {

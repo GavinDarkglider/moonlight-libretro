@@ -16,6 +16,10 @@ extern "C" {
     #include "client.h"
 }
 
+/* Defined in GameStreamClient.cpp -- joins the background worker thread
+ * so it doesn't outlive dlclose() and segfault on exit. */
+extern void perform_async_shutdown();
+
 struct retro_hw_render_callback hw_render;
 
 #if defined(HAVE_PSGL)
@@ -63,6 +67,31 @@ void moonlight_init(int width, int height) {
     nanogui::setup(1.0 / 15.0);
 }
 
+/* Idempotent. Tears down everything moonlight_init() set up, in the
+ * reverse order. Must be called while the GL context is still valid,
+ * because nanogui::Screen's destructor releases GL handles. */
+static void moonlight_shutdown(void) {
+    if (!moonlight_is_initialized) {
+        return;
+    }
+
+    /* Drain and stop the background worker first so it can't fire
+     * callbacks against UI/session objects we're about to destroy. */
+    perform_async_shutdown();
+
+    /* Delete the Application (a nanogui::Screen) -- this destroys all
+     * child widgets including any active StreamWindow, which in turn
+     * deletes its MoonlightSession and stops the connection. */
+    if (app) {
+        delete app;
+        app = nullptr;
+    }
+
+    nanogui::shutdown();
+
+    moonlight_is_initialized = false;
+}
+
 void retro_init(void) {
     #ifdef __LAKKA_SWITCH__
     mkdirtree("/storage/system/moonlight");
@@ -74,7 +103,12 @@ void retro_init(void) {
 }
 
 void retro_deinit(void) {
-    
+    /* Defensive: normally retro_unload_game() has already torn down
+     * the UI, but if it wasn't called (some libretro frontends skip it)
+     * make sure we don't leave the worker thread or live GL handles
+     * sitting in a shared library that's about to be dlclose()d. */
+    moonlight_shutdown();
+    curl_global_cleanup();
 }
 
 unsigned retro_api_version(void) {
@@ -169,6 +203,11 @@ static void context_reset(void) {
 
 static void context_destroy(void) {
     fprintf(stderr, "Context destroy!\n");
+    /* The GL context is being torn down. nanogui textures and FBOs hold
+     * GL handles that will become invalid; release them now while the
+     * context is still valid (the GL handles are destroyed in Screen's
+     * destructor via nanogui::shutdown()). */
+    moonlight_shutdown();
 }
 
 static bool retro_init_hw_context(void) {
@@ -211,7 +250,10 @@ bool retro_load_game(const struct retro_game_info *info) {
 }
 
 void retro_unload_game(void) {
-    
+    /* RetroArch is unloading the core's "game". Drop the UI before the
+     * GL context is destroyed -- nanogui's Screen destructor releases
+     * GL handles and would crash if called after context_destroy(). */
+    moonlight_shutdown();
 }
 
 unsigned retro_get_region(void) {

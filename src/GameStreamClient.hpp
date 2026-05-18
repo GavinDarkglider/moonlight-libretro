@@ -12,6 +12,12 @@ extern "C" {
 
 extern void perform_async(std::function<void()> task);
 
+/* Called from retro_deinit to signal the background worker thread to
+ * exit, drain any final tasks, and join it. Without this the detached
+ * worker would keep running after the .so is dlclose()d, causing the
+ * exit-time SIGSEGV. */
+extern void perform_async_shutdown();
+
 template <typename T>
 struct Result {
 public:

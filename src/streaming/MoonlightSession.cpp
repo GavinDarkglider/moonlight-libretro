@@ -14,6 +14,15 @@ MoonlightSession::MoonlightSession(const std::string &address, int app_id) {
 }
 
 MoonlightSession::~MoonlightSession() {
+    /* Defensive: make sure the moonlight-common-c streaming threads are
+     * stopped before we tear down the decoder/renderer/audio backends
+     * they call into. StreamWindow normally calls stop() explicitly via
+     * terminate(), but if we got here without that (e.g. RetroArch exits
+     * while a session is live) we still need to halt the connection. */
+    if (m_active_session == this) {
+        LiStopConnection();
+    }
+
     if (m_video_decoder) {
         delete m_video_decoder;
     }
