@@ -93,12 +93,14 @@ LIBGAMESTREAM_SOURCES = \
 
 MOONLIGHT_LIBRETRO_C_SOURCES = \
 	third_party/libretro-common/glsym/rglgen.c \
+	third_party/mdns/mdns.c \
 	src/nanogui_resources/nanogui_resources.c \
 	src/moonlight_libretro.c
 
 MOONLIGHT_LIBRETRO_CXX_SOURCES = \
 	src/ui/windows/AddHostWindow.cpp \
 	src/ui/windows/ContentWindow.cpp \
+	src/ui/windows/DiscoveryWindow.cpp \
 	src/ui/windows/MainWindow.cpp \
 	src/ui/windows/StreamWindow.cpp \
 	src/ui/windows/AppListWindow.cpp \
@@ -109,6 +111,7 @@ MOONLIGHT_LIBRETRO_CXX_SOURCES = \
 	src/ui/Application.cpp \
 	src/ui/LoadingOverlay.cpp \
 	src/GameStreamClient.cpp \
+	src/ServerDiscovery.cpp \
 	src/Settings.cpp \
 	src/InputController.cpp \
 	src/streaming/MoonlightSession.cpp \
@@ -191,6 +194,7 @@ INCLUDES += \
 	-Isrc/streaming -Isrc/streaming/audio -Isrc/streaming/video -Isrc/streaming/ffmpeg \
 	-Ilibgamestream \
 	-Ithird_party/libretro-common/include \
+	-Ithird_party/mdns \
 	-Ithird_party/moonlight-common-c/reedsolomon \
 	-Ithird_party/moonlight-common-c/src \
 	-Ithird_party/moonlight-common-c/enet/include \

@@ -1,6 +1,7 @@
 #include "MainWindow.hpp"
 #include "AddHostWindow.hpp"
 #include "AddHostButton.hpp"
+#include "DiscoveryWindow.hpp"
 #include "HostButton.hpp"
 #include "GameStreamClient.hpp"
 #include "LoadingOverlay.hpp"
@@ -13,6 +14,12 @@ using namespace nanogui;
 
 MainWindow::MainWindow(Widget *parent): ContentWindow(parent, "Moonlight ") {
     set_box_layout(Orientation::Horizontal, Alignment::Minimum);
+    
+    /* Left title button: search the LAN for GameStream/Sunshine hosts
+     * via mDNS. */
+    set_left_title_button(FA_SEARCH, [this] {
+        push<DiscoveryWindow>();
+    });
     
     set_right_title_button(FA_COG, [this] {
         push<SettingsWindow>();
