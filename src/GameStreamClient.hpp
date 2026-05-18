@@ -12,10 +12,16 @@ extern "C" {
 
 extern void perform_async(std::function<void()> task);
 
-/* Called from retro_deinit to signal the background worker thread to
- * exit, drain any final tasks, and join it. Without this the detached
- * worker would keep running after the .so is dlclose()d, causing the
- * exit-time SIGSEGV. */
+/* Bring the background worker thread up. Safe to call multiple times --
+ * the second call is a no-op. moonlight_init() invokes this so that a
+ * reload cycle (shutdown -> init) restarts the worker that the previous
+ * shutdown joined. */
+extern void perform_async_startup();
+
+/* Signal the background worker thread to drain its queue, exit, and be
+ * disposed of (join, or detach as a last resort). Must be called before
+ * the .so is dlclose()d, otherwise the static-destructor path tries to
+ * destroy a still-joinable std::thread and calls std::terminate(). */
 extern void perform_async_shutdown();
 
 template <typename T>

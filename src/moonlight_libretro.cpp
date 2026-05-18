@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <chrono>
+#include <thread>
 #include <curl/curl.h>
 #include <openssl/ssl.h>
 
@@ -16,8 +18,10 @@ extern "C" {
     #include "client.h"
 }
 
-/* Defined in GameStreamClient.cpp -- joins the background worker thread
- * so it doesn't outlive dlclose() and segfault on exit. */
+/* Defined in GameStreamClient.cpp. The async worker is a background
+ * thread; we must symmetrically start it before any task is queued, and
+ * stop it before the .so is dlclose()d. */
+extern void perform_async_startup();
 extern void perform_async_shutdown();
 
 struct retro_hw_render_callback hw_render;
@@ -61,6 +65,11 @@ void moonlight_init(int width, int height) {
     
     moonlight_is_initialized = true;
     
+    /* Make sure the async worker is running before the Application
+     * starts queueing tasks. This is also what restarts the worker
+     * after a previous moonlight_shutdown() joined it. */
+    perform_async_startup();
+    
     nanogui::init();
     app = new Application(Size(width, height), Size(width, height));
     
@@ -79,6 +88,18 @@ static void moonlight_shutdown(void) {
      * callbacks against UI/session objects we're about to destroy. */
     perform_async_shutdown();
 
+    /* Signal nanogui's internal refresh thread to exit. We deliberately
+     * do NOT call nanogui::shutdown() here -- in the NANOGUI_NO_GLFW
+     * configuration the rock88 fork detaches refresh_thread at startup
+     * and then tries to join() it in shutdown(), which throws EINVAL
+     * (pthread_join on a detached thread). That's exactly the crash
+     * we're trying to eliminate. nanogui::leave() flips the
+     * mainloop_active flag, which the refresh thread polls on a 50ms
+     * interval, so it will exit on its own. Sleep briefly so it gets
+     * a chance to do so before we tear down state it might still touch. */
+    nanogui::leave();
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
     /* Delete the Application (a nanogui::Screen) -- this destroys all
      * child widgets including any active StreamWindow, which in turn
      * deletes its MoonlightSession and stops the connection. */
@@ -86,8 +107,6 @@ static void moonlight_shutdown(void) {
         delete app;
         app = nullptr;
     }
-
-    nanogui::shutdown();
 
     moonlight_is_initialized = false;
 }
