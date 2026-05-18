@@ -78,37 +78,61 @@ void moonlight_init(int width, int height) {
 
 /* Idempotent. Tears down everything moonlight_init() set up, in the
  * reverse order. Must be called while the GL context is still valid,
- * because nanogui::Screen's destructor releases GL handles. */
+ * because nanogui::Screen's destructor releases GL handles.
+ *
+ * The entire body is wrapped in a try/catch as a last-resort defence:
+ * if any path here throws (a join() that EINVAL'd, a nanogui destructor
+ * that's unhappy, a stale GL handle dereference), we'd rather leak
+ * resources at process exit than have RetroArch SIGABRT and lose the
+ * user's session. The leak is bounded -- the OS reclaims everything
+ * when dlclose() finishes. */
 static void moonlight_shutdown(void) {
     if (!moonlight_is_initialized) {
         return;
     }
+    moonlight_is_initialized = false;
 
-    /* Drain and stop the background worker first so it can't fire
-     * callbacks against UI/session objects we're about to destroy. */
-    perform_async_shutdown();
+    fprintf(stderr, "moonlight_shutdown: begin\n");
 
-    /* Signal nanogui's internal refresh thread to exit. We deliberately
-     * do NOT call nanogui::shutdown() here -- in the NANOGUI_NO_GLFW
-     * configuration the rock88 fork detaches refresh_thread at startup
-     * and then tries to join() it in shutdown(), which throws EINVAL
-     * (pthread_join on a detached thread). That's exactly the crash
-     * we're trying to eliminate. nanogui::leave() flips the
-     * mainloop_active flag, which the refresh thread polls on a 50ms
-     * interval, so it will exit on its own. Sleep briefly so it gets
-     * a chance to do so before we tear down state it might still touch. */
-    nanogui::leave();
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    try {
+        fprintf(stderr, "moonlight_shutdown: stopping async worker\n");
+        /* Drain and stop the background worker first so it can't fire
+         * callbacks against UI/session objects we're about to destroy. */
+        perform_async_shutdown();
+        fprintf(stderr, "moonlight_shutdown: async worker stopped\n");
+    } catch (const std::exception& e) {
+        fprintf(stderr, "moonlight_shutdown: async worker threw: %s\n", e.what());
+    } catch (...) {
+        fprintf(stderr, "moonlight_shutdown: async worker threw unknown\n");
+    }
 
-    /* Delete the Application (a nanogui::Screen) -- this destroys all
-     * child widgets including any active StreamWindow, which in turn
-     * deletes its MoonlightSession and stops the connection. */
-    if (app) {
-        delete app;
+    try {
+        fprintf(stderr, "moonlight_shutdown: leaving nanogui main loop\n");
+        nanogui::leave();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        fprintf(stderr, "moonlight_shutdown: nanogui leave done\n");
+    } catch (const std::exception& e) {
+        fprintf(stderr, "moonlight_shutdown: nanogui leave threw: %s\n", e.what());
+    } catch (...) {
+        fprintf(stderr, "moonlight_shutdown: nanogui leave threw unknown\n");
+    }
+
+    try {
+        fprintf(stderr, "moonlight_shutdown: deleting Application\n");
+        if (app) {
+            delete app;
+            app = nullptr;
+        }
+        fprintf(stderr, "moonlight_shutdown: Application deleted\n");
+    } catch (const std::exception& e) {
+        fprintf(stderr, "moonlight_shutdown: delete app threw: %s\n", e.what());
+        app = nullptr;
+    } catch (...) {
+        fprintf(stderr, "moonlight_shutdown: delete app threw unknown\n");
         app = nullptr;
     }
 
-    moonlight_is_initialized = false;
+    fprintf(stderr, "moonlight_shutdown: complete\n");
 }
 
 void retro_init(void) {
